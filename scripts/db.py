@@ -103,10 +103,6 @@ class Db:
             }
         self.insert("departments", data)
 
-    def add_departments_defaults(self):
-        self.add_department("Nastava")
-        self.add_department("Privatno")
-
     def clear_departments(self):
         self.truncate("departments")
 
@@ -149,6 +145,43 @@ class Db:
 
     def clear_dates(self):
         self.truncate("dates")
+
+    def get_bookings(self):
+        return self.execute("SELECT * FROM bookings;")
+
+    def add_booking(self, room_id, period_id, classname, date):
+        created_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        data = {
+            'repeat_id': None,
+            'session_id': 1,
+            'period_id': period_id,
+            'room_id': room_id,
+            'user_id': 1,
+            'department_id': 1,
+            'date': date,
+            'status': 10,
+            'notes': classname,
+            'cancel_reason': None,
+            'cancelled_at': None,
+            'cancelled_by': None,
+            'created_at': created_at,
+            'created_by': 1,
+            'updated_at': None,
+            'updated_by': None
+            }
+        self.insert("bookings", data)
+
+    def clear_bookings(self):
+        self.truncate("bookings")
+
+    def add_booking_in_range(self, room_id, period_id, classname, date_start, date_end, weekday):
+        date_start = datetime.datetime.strptime(date_start, '%Y-%m-%d').date()
+        date_end = datetime.datetime.strptime(date_end, '%Y-%m-%d').date()
+        delta = date_end - date_start
+        for i in range(delta.days + 1):
+            day = date_start + datetime.timedelta(days=i)
+            if weekday == day.weekday() + 1:
+                self.add_booking(room_id, period_id, classname, str(day))
 
     def export(self):
         data = {}

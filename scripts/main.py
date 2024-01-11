@@ -31,6 +31,13 @@ def sync_departments(db):
     db.add_department("Nastava")
     db.add_department("Privatno")
 
+def sync_all(timetable, db):
+    db.clear_all()
+    sync_sessions_weeks_dates(db)
+    sync_periods(timetable, db)
+    sync_rooms(timetable, db)
+    sync_departments(db)
+
 if __name__== "__main__":
     timetable = Timetable()
     db = Db()
