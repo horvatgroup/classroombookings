@@ -94,19 +94,18 @@ class Timetable:
             classnames = self.get_items_by_ids(self.get_classes(), lesson.classids)
             teachers = self.get_items_by_ids(self.get_teachers(), lesson.teacherids)
             subject = self.get_item_by_id(self.get_subjects(), lesson.subjectid)
-            match len(classrooms):
-                case 1:
-                    classroom_name = classrooms[0].name
-                    period = self.get_item_by_field(self.get_periods(), "period", card.period)
-                    period_name = period.name
-                    teachers = ", ".join(x.name for x in teachers)
-                    subject_name = subject.name
-                    classnames = ", ".join(x.name for x in classnames)
-                    notes = f"{classnames}, {subject_name}, {teachers}"
+            if len(classrooms) == 1:
+                classroom_name = classrooms[0].name
+                period = self.get_item_by_field(self.get_periods(), "period", card.period)
+                period_name = period.name
+                teachers = ", ".join(x.name for x in teachers)
+                subject_name = subject.name
+                classnames = ", ".join(x.name for x in classnames)
+                notes = f"{classnames}, {subject_name}, {teachers}"
 
-                    teachings.append(Teaching(classroom_name, period_name, weekday, notes))
-                case 0:
-                    pass
-                case _:
-                    raise Exception(f"More then one classrooms in {card}")
+                teachings.append(Teaching(classroom_name, period_name, weekday, notes))
+            if len(classrooms) == 0:
+                pass
+            else:
+                raise Exception(f"More then one classrooms in {card}")
         return teachings
