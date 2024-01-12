@@ -70,20 +70,19 @@ class Timetable:
         return data
 
     def convert_days_to_weekday(self, days):
-        match days:
-            case 1:
-                return 5
-            case 10:
-                return 4
-            case 100:
-                return 3
-            case 1000:
-                return 2
-            case 10000:
-                return 1
-            case _:
-                #TODO: if multiple days?
-                raise Exception(f"Missing day {days} in match case")
+        if days == 1:
+            return 5
+        elif days == 10:
+            return 4
+        elif days == 100:
+            return 3
+        elif days == 1000:
+            return 2
+        elif days == 10000:
+            return 1
+        else:
+            #TODO: if multiple days?
+            raise Exception(f"Missing day {days} in match case")
 
     def get_teachings(self):
         teachings = []
