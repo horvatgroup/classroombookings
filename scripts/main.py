@@ -38,6 +38,10 @@ def sync_rooms(timetable, db):
     for room in timetable.get_classrooms():
         db.add_room(room.name, room.short)
 
+def sync_session_schedules(db):
+    db.clear_session_schedules()
+    db.add_session_schedules_default()
+
 def sync_sessions_weeks_dates(db):
     date_start = DATE_START
     date_end = DATE_END
@@ -70,6 +74,7 @@ def sync_private_bookings(db):
 def sync_all(timetable, db):
     db.clear_all()
     sync_sessions_weeks_dates(db)
+    sync_session_schedules(db)
     sync_periods(timetable, db)
     sync_rooms(timetable, db)
     sync_departments(db)

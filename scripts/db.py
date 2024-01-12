@@ -64,7 +64,6 @@ class Db:
             'time_start': time_start,
             'time_end': time_end,
             'name': name,
-            'days': 0,
             'bookable': 1,
             'day_1': 1,
             'day_2': 1,
@@ -72,7 +71,8 @@ class Db:
             'day_4': 1,
             'day_5': 1,
             'day_6': 0,
-            'day_7': 0
+            'day_7': 0,
+            'schedule_id': 1,
             }
         return self.insert("periods", data)
 
@@ -96,8 +96,11 @@ class Db:
             'location': name,
             'bookable': 1,
             'icon': None,
-            'notes': None,
-            'photo': None
+            'notes': "",
+            'photo': None,
+            'pos': 0,
+            'room_group_id': 1,
+            'user_id': None
             }
         return self.insert("rooms", data)
 
@@ -149,7 +152,8 @@ class Db:
             'date_start': date_start,
             'date_end': date_end,
             'is_current': 1,
-            'is_selectable': 1
+            'is_selectable': 1,
+            'default_schedule_id': 1,
             }
         self.insert("sessions", data)
         
@@ -241,7 +245,7 @@ class Db:
         tables = self.execute("show tables;")
         for table in tables:
             table_name = table["Tables_in_crbs_db"]
-            if table_name not in ("migrations", "settings", "users"):
+            if table_name not in ("migrations", "settings", "users", "schedules", "room_groups", "access_control"):
                 self.truncate(table_name)
 
     def get_holidays(self):
@@ -266,6 +270,23 @@ class Db:
             if holiday["name"] == name:
                 return holiday["holiday_id"]
         return None
+
+    def get_session_schedules(self):
+        return self.execute("SELECT * FROM session_schedules;")
+
+    def add_session_schedule(self, session_id, room_group_id, schedule_id):
+        data = {
+            'session_id': session_id,
+            'room_group_id': room_group_id,
+            'schedule_id': schedule_id
+            }
+        self.insert("session_schedules", data)
+
+    def clear_session_schedules(self):
+        self.truncate("session_schedules")
+
+    def add_session_schedules_default(self):
+        self.add_session_schedule(1, 1, 1)
 
     def sync_dates_by_holiday_name(self, name, date_start, date_end):
         holiday_id = self.get_holiday_id_by_name(name)
