@@ -53,24 +53,28 @@ def sync_departments(db):
     db.add_department("Nastava")
     db.add_department("Privatno")
 
-def sync_all(timetable, db):
-    db.clear_all()
-    sync_sessions_weeks_dates(db)
-    sync_periods(timetable, db)
-    sync_rooms(timetable, db)
-    sync_departments(db)
+def sync_holidays(db):
+    for holiday in holidays:
+        db.add_holiday(holiday.name, holiday.date_start, holiday.date_end)
 
 def sync_bookings(timetable, db):
     teachings = timetable.get_teachings()
     for teaching in teachings:
         room_id = db.get_room_id_by_name(teaching.classroom_name)
         period_id = db.get_period_id_by_name(teaching.period_name)
-        print(teaching, room_id, period_id)
         db.add_booking_in_range(room_id, period_id, teaching.notes, DATE_START, DATE_END, teaching.weekday)
 
-def sync_holidays(db):
-    for holiday in holidays:
-        db.add_holiday(holiday.name, holiday.date_start, holiday.date_end)
+def sync_private_bookings(db):
+    db.import_private_bookings("private.json")
+
+def sync_all(timetable, db):
+    db.clear_all()
+    sync_sessions_weeks_dates(db)
+    sync_periods(timetable, db)
+    sync_rooms(timetable, db)
+    sync_departments(db)
+    sync_holidays(db)
+    sync_bookings(timetable, db)
 
 if __name__== "__main__":
     timetable = Timetable()

@@ -1,6 +1,15 @@
+from os import walk
 import mariadb
 from credentials import *
 import datetime
+from dataclasses import dataclass
+
+@dataclass
+class Booking:
+    room_name: str
+    period_name: str
+    notes: str
+    date: str
 
 class Db:
     def __init__(self):
@@ -28,7 +37,6 @@ class Db:
     def update(self, table, field, field_value, data):
         keys_values = ", ".join([f"{key}={repr(value)}" for key, value in data.items()])
         query = f'UPDATE {table} SET {keys_values} WHERE {field}={repr(field_value)};'
-        print("TUSAM", query)
         self.cur.execute(query)
         self.conn.commit()
 
@@ -37,6 +45,12 @@ class Db:
         self.cur.execute(f"truncate table {table};")
         self.cur.execute("SET FOREIGN_KEY_CHECKS=1;")
         self.conn.commit()
+
+    def convert_date_to_str(self, date):
+        return date.strftime('%Y-%m-%d')
+
+    def convert_date_str_to_date(self, date_str):
+        return datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
 
     def get_periods(self):
         result = self.execute("SELECT * FROM periods;")
@@ -194,14 +208,23 @@ class Db:
     def clear_bookings(self):
         self.truncate("bookings")
 
+    def get_date(self, date):
+        dates = self.get_dates()
+        for d in dates:
+            if d["date"] == date:
+                return d
+        return None
+
     def add_booking_in_range(self, room_id, period_id, notes, date_start, date_end, weekday):
-        date_start = datetime.datetime.strptime(date_start, '%Y-%m-%d').date()
-        date_end = datetime.datetime.strptime(date_end, '%Y-%m-%d').date()
+        date_start = self.convert_date_str_to_date(date_start)
+        date_end = self.convert_date_str_to_date(date_end)
         delta = date_end - date_start
         for i in range(delta.days + 1):
             day = date_start + datetime.timedelta(days=i)
+            date = self.get_date(day)
             if weekday == day.weekday() + 1:
-                self.add_booking(room_id, period_id, notes, str(day))
+                if date["holiday_id"] is None:
+                    self.add_booking(room_id, period_id, notes, str(day))
 
     def export(self):
         data = {}
@@ -209,7 +232,6 @@ class Db:
         for table in tables:
             table_name = table["Tables_in_crbs_db"]
             data[table_name] = self.execute(f"SELECT * FROM {table_name}")
-        print(data)
         filename = input("Enter filename: ")
         with open(filename + ".json", "w") as outfile: 
             import json
@@ -221,14 +243,6 @@ class Db:
             table_name = table["Tables_in_crbs_db"]
             if table_name not in ("migrations", "settings", "users"):
                 self.truncate(table_name)
-
-    def get_private_bookings(self):
-        private_bookings = []
-        bookings = self.get_bookings()
-        for booking in bookings:
-            if booking["department_id"] != 1:
-                private_bookings.append(booking)
-        return private_bookings
 
     def get_holidays(self):
         return self.execute("SELECT * FROM holidays;")
@@ -255,8 +269,8 @@ class Db:
 
     def sync_dates_by_holiday_name(self, name, date_start, date_end):
         holiday_id = self.get_holiday_id_by_name(name)
-        date_start = datetime.datetime.strptime(date_start, '%Y-%m-%d').date()
-        date_end = datetime.datetime.strptime(date_end, '%Y-%m-%d').date()
+        date_start = self.convert_date_str_to_date(date_start)
+        date_end = self.convert_date_str_to_date(date_end)
         delta = date_end - date_start
         for i in range(delta.days + 1):
             day = date_start + datetime.timedelta(days=i)
@@ -266,11 +280,47 @@ class Db:
                     data = {
                         "holiday_id": holiday_id
                     }
-                    self.update("dates", "date", date["date"], data) 
+                    self.update("dates", "date", self.convert_date_to_str(date["date"]), data) 
 
-# dodaj session
-# dodaj timetable week
-# applyan_tjedan_na_polugodiste
-# dodaj sobe
-# dodaj periods
-        
+    def get_dict_from_list_of_dict_by_field_and_field_value(self, list_of_dicts, field, field_value):
+        for d in list_of_dicts:
+            if d[field] == field_value:
+                return d
+        return None
+
+    def export_private_bookings(self):
+        private_bookings = []
+        bookings = self.get_bookings()
+        for booking in bookings:
+            if booking["department_id"] != 1:
+                room_name = self.get_dict_from_list_of_dict_by_field_and_field_value(self.get_rooms(), "room_id", booking["room_id"])["location"]
+                period_name = self.get_dict_from_list_of_dict_by_field_and_field_value(self.get_periods(), "period_id", booking["period_id"])["name"]
+                notes = booking["notes"]
+                date = self.convert_date_to_str(booking["date"])
+                private_bookings.append(Booking(room_name, period_name, notes, date).__dict__)
+        filename = input("Enter filename: ")
+        with open(filename + ".json", "w") as outfile: 
+            import json
+            json.dump(private_bookings, outfile, indent = 4, sort_keys=True, default=str)
+
+    def get_booking_by_date_room_id_period_id(self, date, room_id, period_id):
+        bookings = self.get_bookings()
+        for b in bookings:
+            if b["date"] == date and b["room_id"] == room_id and b["period_id"] == period_id:
+                return b
+        return None
+
+    def import_private_bookings(self, filename):
+        with open(filename) as json_file:
+            import json
+            private_bookings = json.load(json_file)
+            for booking in private_bookings:
+                date = self.convert_date_str_to_date(booking["date"])
+                room_id = self.get_room_id_by_name(booking["room_name"])
+                period_id = self.get_period_id_by_name(booking["period_name"])
+                notes = booking["notes"]
+                current_booking = self.get_booking_by_date_room_id_period_id(date, room_id, period_id)
+                if current_booking is None:
+                    self.add_booking(room_id, period_id, notes, self.convert_date_to_str(date))
+                else:
+                    print(f"Conflict booking {booking}")
