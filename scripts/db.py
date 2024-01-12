@@ -18,23 +18,19 @@ class Db:
         return self.cur.fetchall()
 
     def insert(self, table, data):
-        keys = ', '.join(x for x in data.keys())
-        values = str(list(data.values()))[1:-1]
+        keys = ', '.join([x for x in data.keys()])
+        values = ', '.join([repr(x) for x in data.values()])
         values = values.replace("None", "NULL")
         query = f"INSERT INTO {table} ({keys}) VALUES ({values});"
         self.cur.execute(query)
         self.conn.commit()
 
     def update(self, table, field, field_value, data):
-        for key, value in data.items():
-            if not isinstance(value, int):
-                value = f'"{value}"'
-            if not isinstance(field_value, int):
-                field_value = f'"{field_value}"'
-            query = f'UPDATE {table} SET {key}={value} WHERE {field}={field_value};'
-            print("TUSAM", query)
-            self.cur.execute(query)
-            self.conn.commit()
+        keys_values = ", ".join([f"{key}={repr(value)}" for key, value in data.items()])
+        query = f'UPDATE {table} SET {keys_values} WHERE {field}={repr(field_value)};'
+        print("TUSAM", query)
+        self.cur.execute(query)
+        self.conn.commit()
 
     def truncate(self, table):
         self.cur.execute("SET FOREIGN_KEY_CHECKS=0;")
@@ -271,7 +267,6 @@ class Db:
                         "holiday_id": holiday_id
                     }
                     self.update("dates", "date", date["date"], data) 
-
 
 # dodaj session
 # dodaj timetable week
