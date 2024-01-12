@@ -3,6 +3,17 @@
 from pathlib import Path
 from asctt2012.timetable import Timetable as Tt
 from xsdata.formats.dataclass.parsers import XmlParser
+from pprint import PrettyPrinter
+from dataclasses import dataclass
+
+pprint = PrettyPrinter(indent=4).pprint
+
+@dataclass
+class Teaching:
+    classroom_name: str
+    period_name: str
+    weekday: int
+    notes: str
 
 class Timetable:
     def __init__(self):
@@ -13,7 +24,7 @@ class Timetable:
     def get_periods(self):
         return self.timetable.periods.period
 
-    def get_rooms(self):
+    def get_classrooms(self):
         return self.timetable.classrooms.classroom
 
     def get_classes(self):
@@ -34,6 +45,15 @@ class Timetable:
     def get_cards(self):
         return self.timetable.cards.card
 
+    def get_item_by_field(self, items, field, field_value):
+        for i in items:
+            i_field = getattr(i, field)
+            if i_field is not None:
+                if i_field == field_value:
+                    return i
+        else:
+            return None
+
     def get_item_by_id(self, items, id):
         for i in items:
             if id == i.id:
@@ -49,7 +69,7 @@ class Timetable:
                     data.append(i)
         return data
 
-    def convert_days(self, days):
+    def convert_days_to_weekday(self, days):
         match days:
             case 1:
                 return 5
@@ -65,9 +85,29 @@ class Timetable:
                 #TODO: if multiple days?
                 raise Exception(f"Missing day {days} in match case")
 
-    def parse_cards(self):
-        cards = self.get_cards()
-        for card in cards[:10]:
-            card.days = self.convert_days(card.days)
-            card.classroomids = self.get_items_by_ids(self.get_rooms(), card.classroomids)
-            print(card)
+    def get_teachings(self):
+        teachings = []
+        cards = list(self.get_cards())
+        for card in cards:
+            lesson = self.get_item_by_id(self.get_lessons(), card.lessonid)
+            classrooms = self.get_items_by_ids(self.get_classrooms(), card.classroomids)
+            weekday = self.convert_days_to_weekday(card.days)
+            classnames = self.get_items_by_ids(self.get_classes(), lesson.classids)
+            teachers = self.get_items_by_ids(self.get_teachers(), lesson.teacherids)
+            subject = self.get_item_by_id(self.get_subjects(), lesson.subjectid)
+            match len(classrooms):
+                case 1:
+                    classroom_name = classrooms[0].name
+                    period = self.get_item_by_field(self.get_periods(), "period", card.period)
+                    period_name = period.name
+                    teachers = ", ".join(x.name for x in teachers)
+                    subject_name = subject.name
+                    classnames = ", ".join(x.name for x in classnames)
+                    notes = f"{classnames}, {subject_name}, {teachers}"
+
+                    teachings.append(Teaching(classroom_name, period_name, weekday, notes))
+                case 0:
+                    pass
+                case _:
+                    raise Exception(f"More then one classrooms in {card}")
+        return teachings

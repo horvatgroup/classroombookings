@@ -637,7 +637,7 @@
         },
         {
             "date": "2024-03-31",
-            "holiday_id": null,
+            "holiday_id": 1,
             "session_id": 1,
             "week_id": 1,
             "weekday": 7
@@ -1288,7 +1288,15 @@
         }
     ],
     "departments": [],
-    "holidays": [],
+    "holidays": [
+        {
+            "date_end": "2024-03-31",
+            "date_start": "2024-03-31",
+            "holiday_id": 1,
+            "name": "Uskrs",
+            "session_id": 1
+        }
+    ],
     "lang": [],
     "migrations": [
         {
@@ -1981,7 +1989,7 @@
             "enabled": 1,
             "ext": null,
             "firstname": null,
-            "lastlogin": "2024-01-11 16:22:28",
+            "lastlogin": "2024-01-12 09:06:23",
             "lastname": null,
             "password": "$2y$10$iA0lOaBQuHSTa/0s1PT5ueyfv0BVWAlpSIaqGnplViFqZHWABn/TC",
             "user_id": 1,

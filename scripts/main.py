@@ -3,8 +3,30 @@
 from pprint import PrettyPrinter
 from timetable import Timetable
 from db import Db
+from dataclasses import dataclass
 
 pprint = PrettyPrinter(indent=4).pprint
+
+@dataclass
+class Holiday:
+    name: str
+    date_start: str
+    date_end: str
+
+# 2023./2024.
+DATE_START = "2024-01-08"
+DATE_END = "2024-06-21"
+
+holidays = [
+        Holiday("Zimski praznici 2/2", "2024-02-19", "2024-02-23"),
+        Holiday("Proljetni praznici", "2024-03-28", "2024-04-08"),
+        Holiday("Uskrs", "2024-03-31", "2024-03-31"),
+        Holiday("Uskrsni ponedjeljak", "2024-04-01", "2024-04-01"),
+        Holiday("Praznik rada", "2024-05-01", "2024-05-01"),
+        Holiday("Dan državnosti, Tijelovo", "2024-05-30", "2024-05-30"),
+        Holiday("Dan antifašističke borbe", "2024-06-22", "2024-06-22"),
+        ]
+
 
 def sync_periods(timetable, db):
     db.clear_periods()
@@ -13,12 +35,12 @@ def sync_periods(timetable, db):
 
 def sync_rooms(timetable, db):
     db.clear_rooms()
-    for room in timetable.get_rooms():
+    for room in timetable.get_classrooms():
         db.add_room(room.name, room.short)
 
 def sync_sessions_weeks_dates(db):
-    date_start = "2024-01-01"
-    date_end = "2024-07-01"
+    date_start = DATE_START
+    date_end = DATE_END
     db.clear_sessions()
     db.clear_weeks()
     db.clear_dates()
@@ -37,6 +59,18 @@ def sync_all(timetable, db):
     sync_periods(timetable, db)
     sync_rooms(timetable, db)
     sync_departments(db)
+
+def sync_bookings(timetable, db):
+    teachings = timetable.get_teachings()
+    for teaching in teachings:
+        room_id = db.get_room_id_by_name(teaching.classroom_name)
+        period_id = db.get_period_id_by_name(teaching.period_name)
+        print(teaching, room_id, period_id)
+        db.add_booking_in_range(room_id, period_id, teaching.notes, DATE_START, DATE_END, teaching.weekday)
+
+def sync_holidays(db):
+    for holiday in holidays:
+        db.add_holiday(holiday.name, holiday.date_start, holiday.date_end)
 
 if __name__== "__main__":
     timetable = Timetable()

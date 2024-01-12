@@ -22,9 +22,19 @@ class Db:
         values = str(list(data.values()))[1:-1]
         values = values.replace("None", "NULL")
         query = f"INSERT INTO {table} ({keys}) VALUES ({values});"
-        print("TUSAM:", query)
         self.cur.execute(query)
         self.conn.commit()
+
+    def update(self, table, field, field_value, data):
+        for key, value in data.items():
+            if not isinstance(value, int):
+                value = f'"{value}"'
+            if not isinstance(field_value, int):
+                field_value = f'"{field_value}"'
+            query = f'UPDATE {table} SET {key}={value} WHERE {field}={field_value};'
+            print("TUSAM", query)
+            self.cur.execute(query)
+            self.conn.commit()
 
     def truncate(self, table):
         self.cur.execute("SET FOREIGN_KEY_CHECKS=0;")
@@ -59,6 +69,13 @@ class Db:
     def clear_periods(self):
         self.truncate("periods")
 
+    def get_period_id_by_name(self, name):
+        periods = self.get_periods()
+        for period in periods:
+            if period["name"] == name:
+                return period["period_id"]
+        return None
+
     def get_rooms(self):
         return self.execute("SELECT * FROM rooms;")
 
@@ -76,6 +93,13 @@ class Db:
 
     def clear_rooms(self):
         self.truncate("rooms")
+
+    def get_room_id_by_name(self, name):
+        rooms = self.get_rooms()
+        for room in rooms:
+            if room["location"] == name:
+                return room["room_id"]
+        return None
 
     def get_weeks(self):
         return self.execute("SELECT * FROM weeks;")
@@ -149,7 +173,7 @@ class Db:
     def get_bookings(self):
         return self.execute("SELECT * FROM bookings;")
 
-    def add_booking(self, room_id, period_id, classname, date):
+    def add_booking(self, room_id, period_id, notes, date):
         created_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         data = {
             'repeat_id': None,
@@ -160,7 +184,7 @@ class Db:
             'department_id': 1,
             'date': date,
             'status': 10,
-            'notes': classname,
+            'notes': notes,
             'cancel_reason': None,
             'cancelled_at': None,
             'cancelled_by': None,
@@ -174,14 +198,14 @@ class Db:
     def clear_bookings(self):
         self.truncate("bookings")
 
-    def add_booking_in_range(self, room_id, period_id, classname, date_start, date_end, weekday):
+    def add_booking_in_range(self, room_id, period_id, notes, date_start, date_end, weekday):
         date_start = datetime.datetime.strptime(date_start, '%Y-%m-%d').date()
         date_end = datetime.datetime.strptime(date_end, '%Y-%m-%d').date()
         delta = date_end - date_start
         for i in range(delta.days + 1):
             day = date_start + datetime.timedelta(days=i)
             if weekday == day.weekday() + 1:
-                self.add_booking(room_id, period_id, classname, str(day))
+                self.add_booking(room_id, period_id, notes, str(day))
 
     def export(self):
         data = {}
@@ -202,6 +226,51 @@ class Db:
             if table_name not in ("migrations", "settings", "users"):
                 self.truncate(table_name)
 
+    def get_private_bookings(self):
+        private_bookings = []
+        bookings = self.get_bookings()
+        for booking in bookings:
+            if booking["department_id"] != 1:
+                private_bookings.append(booking)
+        return private_bookings
+
+    def get_holidays(self):
+        return self.execute("SELECT * FROM holidays;")
+
+    def add_holiday(self, name, date_start, date_end):
+        data = {
+            'session_id': 1,
+            'name': name,
+            'date_start': date_start,
+            'date_end': date_end
+            }
+        self.insert("holidays", data)
+        self.sync_dates_by_holiday_name(name, date_start, date_end)
+
+    def clear_holidays(self):
+        self.truncate("holidays")
+
+    def get_holiday_id_by_name(self, name):
+        holidays = self.get_holidays()
+        for holiday in holidays:
+            if holiday["name"] == name:
+                return holiday["holiday_id"]
+        return None
+
+    def sync_dates_by_holiday_name(self, name, date_start, date_end):
+        holiday_id = self.get_holiday_id_by_name(name)
+        date_start = datetime.datetime.strptime(date_start, '%Y-%m-%d').date()
+        date_end = datetime.datetime.strptime(date_end, '%Y-%m-%d').date()
+        delta = date_end - date_start
+        for i in range(delta.days + 1):
+            day = date_start + datetime.timedelta(days=i)
+            dates = self.get_dates()
+            for date in dates:
+                if day == date["date"]:
+                    data = {
+                        "holiday_id": holiday_id
+                    }
+                    self.update("dates", "date", date["date"], data) 
 
 
 # dodaj session
