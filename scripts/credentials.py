@@ -1,7 +1,7 @@
 import os
 import socket
 
-db_user = os.getenv("MARIADB_DATABASE", "crbs_user")
+db_user = os.getenv("MARIADB_USER", "crbs_user")
 db_password =os.getenv("MARIADB_PASSWORD", "6vTccw7zYF")
 try:
     db_host = socket.gethostbyname('crbs-mariadb')
