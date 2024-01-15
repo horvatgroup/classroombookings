@@ -321,6 +321,19 @@ class Db:
     def clear_access_control(self):
         self.truncate("access_control")
 
+    def get_users(self):
+        return self.execute("SELECT * FROM users;")
+
+    def add_user(self):
+        pass
+
+    def clear_users(self):
+        for user in self.get_users():
+            user_id = user["user_id"]
+            if user_id != 1: 
+                cmd = f"DELETE FROM users WHERE user_id={user_id};"
+                self.cur.execute(cmd)
+            self.conn.commit()
 
     def get_dict_from_list_of_dict_by_field_and_field_value(self, list_of_dicts, field, field_value):
         for d in list_of_dicts:
