@@ -31,12 +31,14 @@ class Db:
         values = ', '.join([repr(x) for x in data.values()])
         values = values.replace("None", "NULL")
         query = f"INSERT INTO {table} ({keys}) VALUES ({values});"
+        print(f"DEBUG: {query}")
         self.cur.execute(query)
         self.conn.commit()
 
     def update(self, table, field, field_value, data):
         keys_values = ", ".join([f"{key}={repr(value)}" for key, value in data.items()])
         query = f'UPDATE {table} SET {keys_values} WHERE {field}={repr(field_value)};'
+        print(f"DEBUG: {query}")
         self.cur.execute(query)
         self.conn.commit()
 
@@ -91,7 +93,6 @@ class Db:
 
     def add_room(self, name, short_name):
         data = {
-            'user_id': 0,
             'name': short_name,
             'location': name,
             'bookable': 1,
@@ -245,7 +246,7 @@ class Db:
         tables = self.execute("show tables;")
         for table in tables:
             table_name = table["Tables_in_crbs_db"]
-            if table_name not in ("migrations", "settings", "users", "schedules", "room_groups", "access_control"):
+            if table_name not in ("migrations", "room_groups", "schedules", "settings", "users", "access_control"):
                 self.truncate(table_name)
 
     def get_holidays(self):
@@ -302,6 +303,24 @@ class Db:
                         "holiday_id": holiday_id
                     }
                     self.update("dates", "date", self.convert_date_to_str(date["date"]), data) 
+
+    def get_access_control(self):
+        return self.execute("SELECT * FROM access_control;")
+
+    def add_access_control(self):
+        data = {
+                'target': 'R',
+                'target_id': 1,
+                'actor': 'A',
+                'actor_id': None,
+                'permission': 'view',
+                'reference': 'R1.A.view'
+                }
+        self.insert("access_control", data)
+
+    def clear_access_control(self):
+        self.truncate("access_control")
+
 
     def get_dict_from_list_of_dict_by_field_and_field_value(self, list_of_dicts, field, field_value):
         for d in list_of_dicts:

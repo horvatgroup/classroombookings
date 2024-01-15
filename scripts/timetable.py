@@ -104,7 +104,7 @@ class Timetable:
                 notes = f"{classnames}, {subject_name}, {teachers}"
 
                 teachings.append(Teaching(classroom_name, period_name, weekday, notes))
-            if len(classrooms) == 0:
+            elif len(classrooms) == 0:
                 pass
             else:
                 raise Exception(f"More then one classrooms in {card}")

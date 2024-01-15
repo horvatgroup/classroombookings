@@ -38,6 +38,10 @@ def sync_rooms(timetable, db):
     for room in timetable.get_classrooms():
         db.add_room(room.name, room.short)
 
+def sync_access_control(db):
+    db.clear_access_control()
+    db.add_access_control()
+
 def sync_session_schedules(db):
     db.clear_session_schedules()
     db.add_session_schedules_default()
@@ -72,11 +76,11 @@ def sync_private_bookings(db):
     db.import_private_bookings("private.json")
 
 def sync_all(timetable, db):
-    db.clear_all()
     sync_sessions_weeks_dates(db)
     sync_session_schedules(db)
     sync_periods(timetable, db)
     sync_rooms(timetable, db)
+    sync_access_control(db)
     sync_departments(db)
     sync_holidays(db)
     sync_bookings(timetable, db)
