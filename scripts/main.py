@@ -18,6 +18,7 @@ DATE_START = "2024-01-08"
 DATE_END = "2024-06-21"
 PASTORALNI_CENTAR = "Pastoralni centar"
 SKOLSKA_ZGRADA = "Školska zgrada"
+BOLNICA = "Bolnica"
 SESSION = "Polugodište"
 WEEK = "Tjedan"
 SCHEDULE = "Periods"
@@ -36,14 +37,18 @@ def sync_room_groups(db):
     db.clear_room_groups()
     db.add_room_group(PASTORALNI_CENTAR)
     db.add_room_group(SKOLSKA_ZGRADA)
+    db.add_room_group(BOLNICA)
 
 def sync_rooms(timetable, db):
     db.clear_rooms()
     room_group_id_pastoralni_centar = db.get_room_group_id_by_name(PASTORALNI_CENTAR)
     room_group_id_skolska_zgrada = db.get_room_group_id_by_name(SKOLSKA_ZGRADA)
+    room_group_id_bolnica = db.get_room_group_id_by_name(BOLNICA)
     for room in timetable.get_classrooms():
         if "nova škola" in room.name.lower():
             db.add_room(room.name, room.short, room_group_id_skolska_zgrada)
+        elif "bolnica" is room.name.lower():
+            db.add_room(room.name, room.short, room_group_id_bolnica)
         else:
             db.add_room(room.name, room.short, room_group_id_pastoralni_centar)
 
