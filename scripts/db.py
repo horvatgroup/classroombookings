@@ -88,10 +88,31 @@ class Db:
                 return period["period_id"]
         return None
 
+    def get_room_groups(self):
+        return self.execute("SELECT * FROM room_groups;")
+
+    def add_room_group(self, name):
+        data = {
+            'pos': 0,
+            'name': name,
+            'description': ''
+            }
+        return self.insert("room_groups", data)
+
+    def clear_room_groups(self):
+        self.truncate("room_groups")
+
+    def get_room_group_id_by_name(self, name):
+        room_groups = self.get_room_groups()
+        for room_group in room_groups:
+            if room_group["name"] == name:
+                return room_group["room_group_id"]
+        return None
+
     def get_rooms(self):
         return self.execute("SELECT * FROM rooms;")
 
-    def add_room(self, name, short_name):
+    def add_room(self, name, short_name, room_group_id = None):
         data = {
             'name': short_name,
             'location': name,
@@ -100,7 +121,7 @@ class Db:
             'notes': "",
             'photo': None,
             'pos': 0,
-            'room_group_id': 1,
+            'room_group_id': room_group_id,
             'user_id': None
             }
         return self.insert("rooms", data)
@@ -161,6 +182,13 @@ class Db:
     def clear_sessions(self):
         self.truncate("sessions")
 
+    def get_session_id_by_name(self, name):
+        sessions = self.get_sessions()
+        for session in sessions:
+            if session["name"] == name:
+                return session["session_id"]
+        return None
+
     def get_dates(self):
         return self.execute("SELECT * FROM dates;")
 
@@ -188,10 +216,10 @@ class Db:
     def get_bookings(self):
         return self.execute("SELECT * FROM bookings;")
 
-    def add_booking(self, room_id, period_id, notes, date):
+    def add_booking(self, room_id, period_id, notes, date, repeat_id = None):
         created_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         data = {
-            'repeat_id': None,
+            'repeat_id': repeat_id,
             'session_id': 1,
             'period_id': period_id,
             'room_id': room_id,
@@ -213,6 +241,34 @@ class Db:
     def clear_bookings(self):
         self.truncate("bookings")
 
+    def get_bookings_repeat(self):
+        return self.execute("SELECT * FROM bookings_repeat;")
+
+    def add_bookings_repeat(self, room_id, period_id, weekday):
+        created_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        data = {
+            'session_id': 1,
+            'period_id': period_id,
+            'room_id': room_id,
+            'user_id': None,
+            'department_id': 1,
+            'week_id': 1,
+            'weekday': weekday,
+            'status': 10,
+            'notes': None,
+            'cancel_reason': None,
+            'cancelled_at': None,
+            'cancelled_by': None,
+            'created_at': created_at,
+            'created_by': 1,
+            'updated_at': None,
+            'updated_by': None
+            }
+        self.insert("bookings_repeat", data)
+
+    def clear_bookings_repeat(self):
+        self.truncate("bookings_repeat")
+
     def get_date(self, date):
         dates = self.get_dates()
         for d in dates:
@@ -224,12 +280,14 @@ class Db:
         date_start = self.convert_date_str_to_date(date_start)
         date_end = self.convert_date_str_to_date(date_end)
         delta = date_end - date_start
+        self.add_bookings_repeat(room_id, period_id, weekday)
+        repeat_id = self.get_bookings_repeat()[-1]["repeat_id"]
         for i in range(delta.days + 1):
             day = date_start + datetime.timedelta(days=i)
             date = self.get_date(day)
             if weekday == day.weekday() + 1:
                 if date["holiday_id"] is None:
-                    self.add_booking(room_id, period_id, notes, str(day))
+                    self.add_booking(room_id, period_id, notes, str(day), repeat_id)
 
     def export(self):
         data = {}
@@ -246,7 +304,7 @@ class Db:
         tables = self.execute("show tables;")
         for table in tables:
             table_name = table["Tables_in_crbs_db"]
-            if table_name not in ("migrations", "room_groups", "schedules", "settings", "users", "access_control"):
+            if table_name not in ("migrations", "users", "schedules", "settings"):
                 self.truncate(table_name)
 
     def get_holidays(self):
@@ -272,6 +330,16 @@ class Db:
                 return holiday["holiday_id"]
         return None
 
+    def get_schedules(self):
+        return self.execute("SELECT * FROM schedules;")
+
+    def get_schedule_id_by_name(self, name):
+        schedules = self.get_schedules()
+        for schedule in schedules:
+            if schedule["name"] == name:
+                return schedule["schedule_id"]
+        return None
+
     def get_session_schedules(self):
         return self.execute("SELECT * FROM session_schedules;")
 
@@ -285,9 +353,6 @@ class Db:
 
     def clear_session_schedules(self):
         self.truncate("session_schedules")
-
-    def add_session_schedules_default(self):
-        self.add_session_schedule(1, 1, 1)
 
     def sync_dates_by_holiday_name(self, name, date_start, date_end):
         holiday_id = self.get_holiday_id_by_name(name)

@@ -16,6 +16,11 @@ class Holiday:
 # 2023./2024.
 DATE_START = "2024-01-08"
 DATE_END = "2024-06-21"
+PASTORALNI_CENTAR = "Pastoralni centar"
+SKOLSKA_ZGRADA = "Školska zgrada"
+SESSION = "Polugodište"
+WEEK = "Tjedan"
+SCHEDULE = "Periods"
 
 holidays = [
         Holiday("Zimski praznici 2/2", "2024-02-19", "2024-02-23"),
@@ -27,24 +32,29 @@ holidays = [
         Holiday("Dan antifašističke borbe", "2024-06-22", "2024-06-22"),
         ]
 
-
-def sync_periods(timetable, db):
-    db.clear_periods()
-    for period in timetable.get_periods():
-        db.add_period(period.name, period.starttime, period.endtime)
+def sync_room_groups(db):
+    db.clear_room_groups()
+    db.add_room_group(PASTORALNI_CENTAR)
+    db.add_room_group(SKOLSKA_ZGRADA)
 
 def sync_rooms(timetable, db):
     db.clear_rooms()
+    room_group_id_pastoralni_centar = db.get_room_group_id_by_name(PASTORALNI_CENTAR)
+    room_group_id_skolska_zgrada = db.get_room_group_id_by_name(SKOLSKA_ZGRADA)
     for room in timetable.get_classrooms():
-        db.add_room(room.name, room.short)
+        if "nova škola" in room.name.lower():
+            db.add_room(room.name, room.short, room_group_id_skolska_zgrada)
+        else:
+            db.add_room(room.name, room.short, room_group_id_pastoralni_centar)
 
 def sync_access_control(db):
     db.clear_access_control()
-    db.add_access_control()
+    db.add_access_control_for_all_rooms()
 
-def sync_session_schedules(db):
-    db.clear_session_schedules()
-    db.add_session_schedules_default()
+def sync_departments(db):
+    db.clear_departments()
+    db.add_department("Nastava")
+    db.add_department("Vannastavno")
 
 def sync_sessions_weeks_dates(db):
     date_start = DATE_START
@@ -52,14 +62,23 @@ def sync_sessions_weeks_dates(db):
     db.clear_sessions()
     db.clear_weeks()
     db.clear_dates()
-    db.add_session("Polugodište", date_start, date_end)
-    db.add_week("Tjedan")
+    db.add_session(SESSION, date_start, date_end)
+    db.add_week(WEEK)
     db.add_dates(date_start, date_end)
 
-def sync_departments(db):
-    db.clear_departments()
-    db.add_department("Nastava")
-    db.add_department("Privatno")
+def sync_session_schedules(db):
+    db.clear_session_schedules()
+    session_id = db.get_session_id_by_name(SESSION)
+    group_room_ip_pastoralni_centar = db.get_room_group_id_by_name(PASTORALNI_CENTAR)
+    group_room_ip_skolska_zgrada = db.get_room_group_id_by_name(SKOLSKA_ZGRADA)
+    schedule_id = db.get_schedule_id_by_name(SCHEDULE)
+    db.add_session_schedule(session_id, group_room_ip_skolska_zgrada, schedule_id)
+    db.add_session_schedule(session_id, group_room_ip_pastoralni_centar, schedule_id)
+
+def sync_periods(timetable, db):
+    db.clear_periods()
+    for period in timetable.get_periods():
+        db.add_period(period.name, period.starttime, period.endtime)
 
 def sync_holidays(db):
     for holiday in holidays:
@@ -76,14 +95,15 @@ def sync_private_bookings(db):
     db.import_private_bookings("private.json")
 
 def sync_all(timetable, db):
-    sync_sessions_weeks_dates(db)
-    sync_session_schedules(db)
-    sync_periods(timetable, db)
+    sync_room_groups(db)
     sync_rooms(timetable, db)
     sync_access_control(db)
     sync_departments(db)
+    sync_sessions_weeks_dates(db)
+    sync_session_schedules(db)
+    sync_periods(timetable, db)
     sync_holidays(db)
-    sync_bookings(timetable, db)
+    #sync_bookings(timetable, db)
 
 if __name__== "__main__":
     timetable = Timetable()
