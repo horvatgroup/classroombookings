@@ -307,16 +307,22 @@ class Db:
     def get_access_control(self):
         return self.execute("SELECT * FROM access_control;")
 
-    def add_access_control(self):
+    def add_access_control(self, room_id):
         data = {
                 'target': 'R',
-                'target_id': 1,
+                'target_id': room_id,
                 'actor': 'A',
                 'actor_id': None,
                 'permission': 'view',
-                'reference': 'R1.A.view'
+                'reference': f'R{room_id}.A.view'
                 }
         self.insert("access_control", data)
+
+    def add_access_control_for_all_rooms(self):
+        rooms = self.get_rooms()
+        for room in rooms:
+            room_id = room["room_id"]
+            self.add_access_control(room_id)
 
     def clear_access_control(self):
         self.truncate("access_control")
