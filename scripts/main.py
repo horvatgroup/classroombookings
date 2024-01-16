@@ -76,9 +76,11 @@ def sync_session_schedules(db):
     session_id = db.get_session_id_by_name(SESSION)
     group_room_ip_pastoralni_centar = db.get_room_group_id_by_name(PASTORALNI_CENTAR)
     group_room_ip_skolska_zgrada = db.get_room_group_id_by_name(SKOLSKA_ZGRADA)
+    group_room_ip_bolnica = db.get_room_group_id_by_name(BOLNICA)
     schedule_id = db.get_schedule_id_by_name(SCHEDULE)
     db.add_session_schedule(session_id, group_room_ip_skolska_zgrada, schedule_id)
     db.add_session_schedule(session_id, group_room_ip_pastoralni_centar, schedule_id)
+    db.add_session_schedule(session_id, group_room_ip_bolnica, schedule_id)
 
 def sync_periods(timetable, db):
     db.clear_periods()
