@@ -47,7 +47,7 @@ def sync_rooms(timetable, db):
     for room in timetable.get_classrooms():
         if "nova škola" in room.name.lower():
             db.add_room(room.name, room.short, room_group_id_skolska_zgrada)
-        elif "bolnica" is room.name.lower():
+        elif "bolnica" in room.name.lower():
             db.add_room(room.name, room.short, room_group_id_bolnica)
         else:
             db.add_room(room.name, room.short, room_group_id_pastoralni_centar)
